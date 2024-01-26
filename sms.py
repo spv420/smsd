@@ -77,7 +77,7 @@ def buffer_input_cb(data, buffer, input_data):
 
 # callback called when buffer is closed
 def buffer_close_cb(data, buffer):
-	# ...
+	flush_db()
 	return weechat.WEECHAT_RC_OK
 
 def display_all():
