@@ -54,14 +54,19 @@ def send_sms(num, text):
 
 	ser.write(b'ATZ\r\n')
 	time.sleep(0.025)
+
 	ser.write(b'AT+CMGF=1\r\n')
 	time.sleep(0.025)
+
 	ser.write(b'AT+CMGS=\"%s\"\r\n' % num.encode())
 	time.sleep(0.025)
+
 	ser.write(b'%s\x1a' % text.encode())
 	time.sleep(1)
+
 	ser.write(b'ATE0\r\n')
 	time.sleep(0.025)
+
 	ser.write(b'AT+CNMI=2,2,0,0,0\r\n')
 
 	sms_db.append((num, os.environ["USER"], time.time(), len(text), text))
@@ -69,36 +74,45 @@ def send_sms(num, text):
 
 # callback for data received in input
 def buffer_input_cb(data, buffer, input_data):
-	# ...
 	buf_name = weechat.buffer_get_string(buffer, "name")
 	send_sms(buf_name, input_data)
 	weechat.prnt(buffer, "%s: %s%s" % (os.environ["USER"], weechat.color("green"), input_data))
+
 	return weechat.WEECHAT_RC_OK
 
 # callback called when buffer is closed
 def buffer_close_cb(data, buffer):
 	flush_db()
+
 	return weechat.WEECHAT_RC_OK
 
 def display_all():
 	global sms_db, buffer
 
 	for v in sms_db:
+		# check if buffer already exists, if not, create it
 		buffer = weechat.buffer_search("python", v[0])
+
 		if buffer == "":
 			buffer = weechat.buffer_new(v[0], "buffer_input_cb", "", "buffer_close_cb", "")
+
 		weechat.prnt(buffer, "%s: %s%s" % (v[1], weechat.color("green"), v[4]))
 
 def check_sms_buf(data, remaining_calls):
 	global sms_recv_buf, buffer
 
 	for v in sms_recv_buf:
+		# check if buffer already exists, if not, create it
 		buffer = weechat.buffer_search("python", v[0])
+
 		if buffer == "":
 			buffer = weechat.buffer_new(v[0], "buffer_input_cb", "", "buffer_close_cb", "")
+
+		# keep permanent record of the message
 		sms_db.append(v)
-		weechat.prnt(buffer, "%s: %s%s" % (v[1], weechat.color("green"), v[4]))
 		flush_db()
+
+		weechat.prnt(buffer, "%s: %s%s" % (v[1], weechat.color("green"), v[4]))
 
 	sms_recv_buf = []
 
@@ -106,7 +120,7 @@ def check_sms_buf(data, remaining_calls):
 	return 0
 
 def check_sms(data):
-	s = sock.recv(256).decode()
+	s = sock.recv(1024).decode()
 
 	data = s
 
@@ -121,14 +135,16 @@ def check_sms_cb(data, command, return_code, out, err):
 	msg = s[s.index("\"") + 1:]
 
 	sms_recv_buf.append((phone_num, phone_num, sent_time, length, msg))
-#	print("sms_cb %s", data, command, command, return_code, out, err)
 	weechat.hook_process("func:check_sms", 0, "check_sms_cb", "")
+
 	return 0
 
 def sms_command_cb(data, buffer, args):
 	blaze_it = args.split(" ")
+
 	if blaze_it[0] == "compose":
 		weechat.buffer_new(blaze_it[1], "buffer_input_cb", "", "buffer_close_cb", "")
+
 	return weechat.WEECHAT_RC_OK
 
 if True:
