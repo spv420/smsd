@@ -26,12 +26,16 @@ time.sleep(0.025)
 def send_sms(num, text):
 	ser.write(b'ATZ\r\n')
 	time.sleep(0.025)
+
 	ser.write(b'AT+CMGF=1\r\n')
 	time.sleep(0.025)
+
 	ser.write(b'AT+CMGS=\"%s\"\r\n' % num.encode())
 	time.sleep(0.025)
+
 	ser.write(b'%s\x1a' % text.encode())
 	time.sleep(0.025)
+
 	ser.write(b'ATE0\r\n')
 
 def parse_sms(text):
@@ -58,28 +62,25 @@ while True:
 	while True:
 		not_empty = True
 
-#		time.sleep(0.025)
-		sys.stdout.flush()
-		print("a")
 		l1 = ser.readline()
-		print(l1)
 
+		# wait until we have received a message
 		if not l1.decode().startswith("+CMT:") or l1.decode()[:2] == "OK" or l1.decode() == "\r\n":
 			continue
-		print("b")
-		print(l1)
-		print("c")
+
 		s = l1.decode()
 		l1 = ser.readline()
-		print(l1)
+
+		# sms messages just have \n, until the message ends with and \r\n -- until then, wait for 2 empty lines (\r\n)
 		if l1.decode()[-2:] != "\r\n":
 			while not_empty:
 				s += l1.decode()
 				l1 = ser.readline()
 				if l1.decode()[-2:] == "\r\n":
 					not_empty = False
+
+		# decode the last bit
 		s += l1.decode()
-		print("e")
 
 		phone_num, stime, msg = parse_sms(s)
 
